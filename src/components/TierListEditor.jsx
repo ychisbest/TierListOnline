@@ -185,12 +185,12 @@ export default function TierListEditor() {
                 onDragOver={(e) => e.preventDefault()}
                 onDrop={(e) => handleDrop(e, tier.id)}
                 onContextMenu={(e) => openContextMenu(e, "tier", tier.id)}
-                className="flex items-stretch rounded-lg overflow-hidden border shadow-sm"
+                className="flex flew-row  rounded-lg  overflow-hidden  border shadow-sm"
                 style={{ borderColor: tier.color + "20" }}
               >
                 {/* 左侧 **label** */}
                 <div
-                  className="w-20 md:w-20 flex flex-col items-center justify-center p-3 text-sm font-semibold select-none cursor-context-menu"
+                  className="w-20 flex flex-col items-center justify-center p-3 text-sm font-semibold select-none cursor-context-menu"
                   style={{ background: tier.color, color: "#fff" }}
                   title="Right-click to edit tier"
                 >
@@ -198,8 +198,8 @@ export default function TierListEditor() {
                 </div>
 
                 {/* 右侧 **items** */}
-                <div className="flex-1 bg-white dark:bg-gray-800 p-3">
-                  <div className="flex gap-3 overflow-x-auto py-1">
+                <div className="flex-1 bg-white flex dark:bg-gray-800 p-3">
+                  <div className="flex gap-3 flex-row flex-wrap py-1">
                     {tier.items.length === 0 && (
                       <div className="text-sm text-gray-300 dark:text-gray-400">
                         Drop items here
@@ -214,11 +214,11 @@ export default function TierListEditor() {
                           draggable
                           onDragStart={(e) => onDragStart(e, it.id)}
                           onContextMenu={(e) => openContextMenu(e, "item", it.id)}
-                          className="flex-shrink-0 w-20 md:w-28 flex flex-col items-center gap-2 p-1 rounded-md dark:bg-gray-700/60 cursor-grab"
+                          className=" relative flex-shrink-0 w-20 md:w-28 flex flex-col items-center gap-2 p-1 rounded-md dark:bg-gray-700/60 cursor-grab"
                           title="Right-click to edit item"
                         >
-                          <img className="w-20 h-20 md:w-24 md:h-24 rounded-md object-cover" src={it.img} alt={it.name} />
-                          <div className="text-xs text-center truncate">{it.name}</div>
+                          <img className="w-20 h-20 rounded-md object-cover" src={it.img} alt={it.name} />
+                          <div className=" w-20 absolute bottom-0 m-1 rounded-b-md bg-black/50 text-xs text-center truncate">{it.name}</div>
                         </div>
                       );
                     })}
@@ -246,9 +246,6 @@ export default function TierListEditor() {
             }}
             className="min-h-[96px] border-2 border-dashed border-gray-200 dark:border-gray-700 rounded-md p-3 flex flex-wrap gap-3 overflow-auto bg-white/50 dark:bg-gray-700/60"
           >
-            {unassignedItems.length === 0 && (
-              <div className="text-sm text-gray-500 dark:text-gray-400">No items</div>
-            )}
             {unassignedItems.map((it) => (
               <div
                 key={it.id}
