@@ -1,0 +1,66 @@
+---
+import { DEFAULT_LOCALE_SETTING, LOCALES_SETTING } from "@/locales";
+import { useTranslations, type Lang } from "@/i18n";
+import Layout from "@/layouts/BaseLayout.astro";
+import BlogList from "@/components/BlogList.astro";
+import Hero from "@/components/Hero.astro";
+import FAQ from "@/components/FAQ.astro";
+const t = useTranslations(Astro.currentLocale as Lang);
+export const getStaticPaths = async () => {
+    const paths = Object.keys(LOCALES_SETTING).map((lang) => {
+        if (lang !== DEFAULT_LOCALE_SETTING) {
+            return {
+                params: { lang: lang },
+            };
+        } else {
+            return { params: { lang: undefined } };
+        }
+    });
+    return paths;
+};
+
+
+const title = {
+    en: "your ultimate Rainbow Six Siege performance tracker - R6 Tracker provides comprehensive statistics and analytics for competitive players",
+    it: "il tuo tracker definitivo delle prestazioni di Rainbow Six Siege - R6 Tracker offre statistiche e analisi complete per giocatori competitivi",
+    de: "dein ultimativer Rainbow Six Siege Leistungsmonitor - R6 Tracker bietet umfassende Statistiken und Analysen für Wettkampfspieler",
+};
+const description = {
+    en: "By using R6 Tracker, you agree to use the service for personal, non-commercial purposes only. The site provides Rainbow Six Siege statistics for informational purposes. Track your performance with our advanced R6 Tracker analytics system.",
+    it: "Utilizzando R6 Tracker, accetti di utilizzare il servizio solo per scopi personali e non commerciali. Il sito fornisce statistiche di Rainbow Six Siege solo a scopo informativo. Monitora le tue prestazioni con il nostro avanzato sistema di analisi R6 Tracker.",
+    de: "Durch die Nutzung von R6 Tracker stimmen Sie zu, den Dienst ausschließlich für persönliche, nicht-kommerzielle Zwecke zu verwenden. Die Seite stellt Rainbow Six Siege Statistiken nur zu Informationszwecken bereit. Verfolge deine Leistung mit unserem fortschrittlichen R6 Tracker Analyse-System.",
+};
+---
+<Layout title={title} description={description}>
+
+    <Hero />
+    
+    <FAQ/>
+
+    <script is:inline>
+        // Add schema.org structured data for SEO
+        const schemaData = {
+            "@context": "https://schema.org",
+            "@type": "SoftwareApplication",
+            "name": "R6 Tracker",
+            "applicationCategory": "GameTracker",
+            "operatingSystem": "Web",
+            "offers": {
+                "@type": "Offer",
+                "price": "0",
+                "priceCurrency": "USD"
+            },
+            "description": "Advanced Rainbow Six Siege statistics and performance tracking service",
+            "aggregateRating": {
+                "@type": "AggregateRating",
+                "ratingValue": "4.8",
+                "reviewCount": "1250"
+            }
+        };
+        
+        const script = document.createElement('script');
+        script.type = 'application/ld+json';
+        script.text = JSON.stringify(schemaData);
+        document.head.appendChild(script);
+    </script>
+</Layout>

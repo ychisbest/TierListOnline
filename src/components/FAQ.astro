@@ -1,0 +1,127 @@
+---
+import type { Lang } from "@/i18n";
+import { useTranslations } from "@/i18n";
+const t = useTranslations(Astro.currentLocale as Lang);
+
+const JsonData = `{
+    "faq_title": {
+        "en": "Tier List Frequently Asked Questions"
+    },
+    "faq_description": {
+        "en": "Find answers to common questions about using tierlist."
+    },
+    "faq": [
+        {
+            "question": {
+                "en": "What is tierlist.online?"
+            },
+            "answer": {
+                "en": "tierlist.online is a free tool that lets you create, edit, and share tier lists for games, characters, and more."
+            }
+        },
+        {
+            "question": {
+                "en": "Do I need to register to use tierlist.online?"
+            },
+            "answer": {
+                "en": "No registration is required. You can create and share tier lists without an account."
+            }
+        },
+        {
+            "question": {
+                "en": "Can I save or export my tier lists?"
+            },
+            "answer": {
+                "en": "Yes, you can save your tier lists by bookmarking the share link or exporting images of your lists."
+            }
+        },
+        {
+            "question": {
+                "en": "How do I share my tier list with others?"
+            },
+            "answer": {
+                "en": "After creating your tier list, use the share link to send it to friends or post it online."
+            }
+        },
+        {
+            "question": {
+                "en": "Is tierlist.online free to use?"
+            },
+            "answer": {
+                "en": "Yes, tierlist.online is completely free to use."
+            }
+        }
+    ]
+}`;
+
+const data = JSON.parse(JsonData);
+---
+
+<script>
+    import "@preline/accordion/index.js";
+</script>
+<!-- FAQ -->
+<div class="max-w-[85rem] px-4 py-10 sm:px-6 lg:px-8 lg:py-14 mx-auto">
+    <!-- Title -->
+    <div class="max-w-2xl mx-auto text-center mb-10 lg:mb-14">
+        <h2
+            class="text-2xl font-bold md:text-4xl md:leading-tight dark:text-white"
+        >
+            {t(data.faq_title)}
+        </h2>
+        <p class="mt-1 text-gray-600 dark:text-neutral-400">
+            {t(data.faq_description)}
+        </p>
+    </div>
+    <!-- End Title -->
+
+    <div class="max-w-2xl mx-auto">
+        <!-- Accordion -->
+        <div class="hs-accordion-group">
+            {
+                data.faq.map((item: any, i: number) => (
+                    <div
+                        class={`hs-accordion hs-accordion-active:bg-gray-100 rounded-xl p-6 dark:hs-accordion-active:bg-white/10 ${i === 0 ? "active" : ""}`}
+                        id={`hs-a-${i}`}
+                    >
+                        <button
+                            class="hs-accordion-toggle group pb-3 inline-flex items-center justify-between gap-x-3 w-full md:text-lg font-semibold text-start text-gray-800 rounded-lg transition hover:text-gray-500 focus:outline-hidden focus:text-gray-500 dark:text-neutral-200 dark:hover:text-neutral-400 dark:focus:text-neutral-400"
+                            aria-expanded={i === 0}
+                            aria-controls={`hs-c-${i}`}
+                        >
+                            {t(item.question)}
+                            <svg
+                                class="hs-accordion-active:hidden block shrink-0 size-5 text-gray-600 group-hover:text-gray-500 dark:text-neutral-400"
+                                fill="none"
+                                stroke="currentColor"
+                                stroke-width="2"
+                                viewBox="0 0 24 24"
+                            >
+                                <path d="m6 9 6 6 6-6" />
+                            </svg>
+                            <svg
+                                class="hs-accordion-active:block hidden shrink-0 size-5 text-gray-600 group-hover:text-gray-500 dark:text-neutral-400"
+                                fill="none"
+                                stroke="currentColor"
+                                stroke-width="2"
+                                viewBox="0 0 24 24"
+                            >
+                                <path d="m18 15-6-6-6 6" />
+                            </svg>
+                        </button>
+                        <div
+                            id={`hs-c-${i}`}
+                            class={`hs-accordion-content w-full overflow-hidden transition-[height] duration-300 ${i === 0 ? "" : "hidden"}`}
+                        >
+                            <p class="text-gray-800 dark:text-neutral-200">
+                                {t(item.answer)}
+                            </p>
+                        </div>
+                    </div>
+                ))
+            }
+        </div>
+        <!-- End Accordion -->
+    </div>
+</div>
+

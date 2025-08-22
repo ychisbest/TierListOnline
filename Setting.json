@@ -1,0 +1,12 @@
+{
+    "DEFAULT_LOCALE_SETTING": "en",
+    "LOCALES_SETTING": {
+        "en": {
+            "label": "English",
+            "lang": "en-US"
+        }
+    },
+    "SITE_URL": "https://tierlist.online",
+    "SITE_TITLE":"Tier List Online",
+    "SITE_DESCRIPTION": "Create and share tier lists for anything"
+}
