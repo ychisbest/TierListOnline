@@ -1,7 +1,4 @@
-// /C:/Users/YCH/Desktop/tierlist.online/src/components/TierListEditor.jsx
 import React, { useEffect, useMemo, useState, useCallback } from "react";
-
-/** Simplified + right-click **context menu** + **modal** editing */
 
 const mockItems = [
   { id: "i1", name: "Alpha", img: "https://placehold.jp/150x150.png" },
@@ -25,25 +22,21 @@ function generateId(prefix = "id") {
 }
 
 export default function TierListEditor() {
-  // items 需要可变以支持 **delete**
   const [items, setItems] = useState(mockItems);
   const [tiers, setTiers] = useState(mockTiers);
-
-  // 右键 **context menu** 状态
   const [menu, setMenu] = useState({
     open: false,
     x: 0,
     y: 0,
-    target: null // { type: 'tier'|'item', id: string }
+    target: null
   });
-
-  // **modal** 编辑状态
   const [modal, setModal] = useState({
     open: false,
-    type: null, // 'tier' | 'item'
+    type: null,
     id: null,
     form: { name: "", color: "#9ca3af", img: "" }
   });
+  const [draggingItem, setDraggingItem] = useState(null); // Track dragged item
 
   const findTierOfItem = useCallback(
     (itemId) => tiers.find((t) => t.items.includes(itemId)) || null,
@@ -55,40 +48,60 @@ export default function TierListEditor() {
     [items, findTierOfItem]
   );
 
-  // DnD **drag** & **drop**
+  // Drag & Drop Handlers
+  function handleDragStart(e, itemId) {
+    e.dataTransfer.setData("text/plain", itemId);
+    e.dataTransfer.effectAllowed = "move";
+    setDraggingItem(itemId);
+    // Add visual feedback
+    e.target.classList.add("opacity-50", "scale-95");
+  }
+
+  function handleDragEnd(e, itemId) {
+    setDraggingItem(null);
+    e.target.classList.remove("opacity-50", "scale-95");
+  }
+
+  function handleDragOver(e, targetTierId) {
+    e.preventDefault();
+    if (!draggingItem) return;
+    
+    // Real-time update of tiers during drag
+    setTiers((prev) => {
+      const without = prev.map((t) => ({
+        ...t,
+        items: t.items.filter((id) => id !== draggingItem)
+      }));
+      return without.map((t) =>
+        t.id === targetTierId ? { ...t, items: [...t.items, draggingItem] } : t
+      );
+    });
+  }
+
   function handleDrop(e, targetTierId) {
     e.preventDefault();
     const itemId = e.dataTransfer.getData("text/plain");
     if (!itemId) return;
-    setTiers((prev) => {
-      const without = prev.map((t) => ({
-        ...t,
-        items: t.items.filter((id) => id !== itemId)
-      }));
-      return without.map((t) =>
-        t.id === targetTierId ? { ...t, items: [...t.items, itemId] } : t
-      );
-    });
+    // Finalize drop (already updated in dragover, so just clear dragging state)
+    setDraggingItem(null);
   }
-  function onDragStart(e, itemId) {
-    e.dataTransfer.setData("text/plain", itemId);
-    e.dataTransfer.effectAllowed = "move";
-  }
+
   function removeItemFromTiers(itemId) {
     setTiers((prev) =>
       prev.map((t) => ({ ...t, items: t.items.filter((id) => id !== itemId) }))
     );
   }
 
-  // 右键 **menu** 开/关
   function openContextMenu(e, type, id) {
     e.preventDefault();
     e.stopPropagation();
     setMenu({ open: true, x: e.clientX, y: e.clientY, target: { type, id } });
   }
+
   function closeContextMenu() {
     setMenu((m) => (m.open ? { ...m, open: false } : m));
   }
+
   useEffect(() => {
     const onGlobal = (e) => {
       if (e.type === "keydown" && e.key === "Escape") {
@@ -106,9 +119,7 @@ export default function TierListEditor() {
     };
   }, []);
 
-  // **modal** helpers
   function openModalFor(target) {
-    console.log("openModalFor", target);
     if (!target) return;
     if (target.type === "tier") {
       const t = tiers.find((x) => x.id === target.id);
@@ -130,9 +141,11 @@ export default function TierListEditor() {
       });
     }
   }
+
   function closeModal() {
     setModal((m) => (m.open ? { ...m, open: false } : m));
   }
+
   function submitModal() {
     if (!modal.open) return;
     if (modal.type === "tier") {
@@ -147,19 +160,17 @@ export default function TierListEditor() {
     closeModal();
   }
 
-  // **menu** actions: Edit / Delete
   function onMenuEdit() {
     openModalFor(menu.target);
     closeContextMenu();
   }
+
   function onMenuDelete() {
     const target = menu.target;
     if (!target) return;
     if (target.type === "tier") {
-      // 删除 **tier**
       setTiers((prev) => prev.filter((t) => t.id !== target.id));
     } else {
-      // 删除 **item**：先从 tier 移除，再从 items 列表移除
       removeItemFromTiers(target.id);
       setItems((prev) => prev.filter((it) => it.id !== target.id));
     }
@@ -169,12 +180,10 @@ export default function TierListEditor() {
   return (
     <div className="p-4 text-gray-900 dark:text-gray-100">
       <div className="max-w-6xl mx-auto flex flex-col gap-4">
-
-        {/* Tiers **list** */}
         <main className="flex-1 space-y-3">
           {tiers.length === 0 && (
             <div className="p-6 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-center text-gray-600 dark:text-gray-300">
-              No tiers yet. Right-click to **add** (暂不提供新增入口，可在外部创建数据)。
+              No tiers yet. Right-click to add (暂不提供新增入口，可在外部创建数据)。
             </div>
           )}
 
@@ -182,13 +191,12 @@ export default function TierListEditor() {
             {tiers.map((tier) => (
               <div
                 key={tier.id}
-                onDragOver={(e) => e.preventDefault()}
+                onDragOver={(e) => handleDragOver(e, tier.id)}
                 onDrop={(e) => handleDrop(e, tier.id)}
                 onContextMenu={(e) => openContextMenu(e, "tier", tier.id)}
-                className="flex flew-row  rounded-lg  overflow-hidden  border shadow-sm"
+                className="flex flew-row rounded-lg overflow-hidden border shadow-sm transition-all duration-200 ease-in-out"
                 style={{ borderColor: tier.color + "20" }}
               >
-                {/* 左侧 **label** */}
                 <div
                   className="w-20 flex flex-col items-center justify-center p-3 text-sm font-semibold select-none cursor-context-menu"
                   style={{ background: tier.color, color: "#fff" }}
@@ -196,9 +204,7 @@ export default function TierListEditor() {
                 >
                   <div className="text-white text-sm font-semibold">{tier.name}</div>
                 </div>
-
-                {/* 右侧 **items** */}
-                <div className="flex-1 bg-white flex dark:bg-gray-800 p-3">
+                <div className="flex-1 bg-white dark:bg-gray-800 p-3 transition-all duration-200">
                   <div className="flex gap-3 flex-row flex-wrap py-1">
                     {tier.items.length === 0 && (
                       <div className="text-sm text-gray-300 dark:text-gray-400">
@@ -212,13 +218,20 @@ export default function TierListEditor() {
                         <div
                           key={it.id}
                           draggable
-                          onDragStart={(e) => onDragStart(e, it.id)}
+                          onDragStart={(e) => handleDragStart(e, it.id)}
+                          onDragEnd={(e) => handleDragEnd(e, it.id)}
                           onContextMenu={(e) => openContextMenu(e, "item", it.id)}
-                          className=" relative flex-shrink-0 w-20 md:w-28 flex flex-col items-center gap-2 p-1 rounded-md dark:bg-gray-700/60 cursor-grab"
+                          className="relative flex-shrink-0 w-22 flex flex-col items-center gap-2 p-1 rounded-md  cursor-grab  duration-200 ease-in-out transition-all"
                           title="Right-click to edit item"
                         >
-                          <img className="w-20 h-20 rounded-md object-cover" src={it.img} alt={it.name} />
-                          <div className=" w-20 absolute bottom-0 m-1 rounded-b-md bg-black/50 text-xs text-center truncate">{it.name}</div>
+                          <img
+                            className="w-20 h-20 rounded-md object-cover transition-opacity duration-200"
+                            src={it.img}
+                            alt={it.name}
+                          />
+                          <div className="w-20 absolute bottom-0 m-1 rounded-b-md bg-black/50 text-white text-xs text-center truncate">
+                            {it.name}
+                          </div>
                         </div>
                       );
                     })}
@@ -229,20 +242,17 @@ export default function TierListEditor() {
           </div>
         </main>
 
-        {/* Pool **aside** */}
         <aside
-          className="w-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4 shadow-sm"
+          className=" mt-10"
         >
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="text-lg font-semibold">TierList Editor</h2>
-          </div>
 
           <div
-            onDragOver={(e) => e.preventDefault()}
+            onDragOver={(e) => handleDragOver(e, null)}
             onDrop={(e) => {
               const itemId = e.dataTransfer.getData("text/plain");
               if (!itemId) return;
               removeItemFromTiers(itemId);
+              setDraggingItem(null);
             }}
             className="min-h-[96px] border-2 border-dashed border-gray-200 dark:border-gray-700 rounded-md p-3 flex flex-wrap gap-3 overflow-auto bg-white/50 dark:bg-gray-700/60"
           >
@@ -250,48 +260,49 @@ export default function TierListEditor() {
               <div
                 key={it.id}
                 draggable
-                onDragStart={(e) => onDragStart(e, it.id)}
+                onDragStart={(e) => handleDragStart(e, it.id)}
+                onDragEnd={(e) => handleDragEnd(e, it.id)}
                 onContextMenu={(e) => openContextMenu(e, "item", it.id)}
-                className="relative w-20 flex-shrink-0 flex flex-col items-center gap-1 select-none cursor-grab"
+                className="relative w-20 flex-shrink-0 flex flex-col items-center gap-1 select-none cursor-grab transition-transform duration-200 ease-in-out"
                 title={it.name}
               >
-                <img className="w-20 h-20 rounded-md object-cover shadow-sm" src={it.img} alt={it.name} />
+                <img
+                  className="w-20 h-20 rounded-md object-cover shadow-sm transition-opacity duration-200"
+                  src={it.img}
+                  alt={it.name}
+                />
                 <div className="absolute bottom-0 text-xs text-center w-full rounded-b-md truncate text-gray-100 py-1 bg-black/40">
                   {it.name}
                 </div>
               </div>
             ))}
-
-                      
             <div className="w-20 flex-shrink-0 flex flex-col items-center gap-1 select-none">
-                <button
-                    type="button"
-                    title="Add item"
-                    onClick={() => {
-                        const id = generateId("i");
-                        const newItem = { id, name: "New Item", img: "https://placehold.jp/150x150.png" };
-                        setItems((s) => [newItem, ...s]);
-                        setModal({
-                            open: true,
-                            type: "item",
-                            id,
-                            form: { name: newItem.name, img: newItem.img, color: "#9ca3af" }
-                        });
-                    }}
-                    className="w-20 h-20 cursor-pointer rounded-md border-2 border-dashed border-gray-300 dark:border-gray-700 flex items-center justify-center text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700/50"
-                >
-                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" aria-hidden focusable="false">
-                        <path d="M12 5v14" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                        <path d="M5 12h14" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                    </svg>
-                </button>
+              <button
+                type="button"
+                title="Add item"
+                onClick={() => {
+                  const id = generateId("i");
+                  const newItem = { id, name: "New Item", img: "https://placehold.jp/150x150.png" };
+                  setItems((s) => [newItem, ...s]);
+                  setModal({
+                    open: true,
+                    type: "item",
+                    id,
+                    form: { name: newItem.name, img: newItem.img, color: "#9ca3af" }
+                  });
+                }}
+                className="w-20 h-20 cursor-pointer rounded-md border-2 border-dashed border-gray-300 dark:border-gray-700 flex items-center justify-center text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700/50"
+              >
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" aria-hidden focusable="false">
+                  <path d="M12 5v14" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                  <path d="M5 12h14" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+              </button>
             </div>
-
           </div>
         </aside>
       </div>
 
-      {/* 自定义 **context menu** */}
       {menu.open && (
         <div
           className="fixed z-50 w-40 rounded-md border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-lg py-1 text-sm"
@@ -313,11 +324,8 @@ export default function TierListEditor() {
         </div>
       )}
 
-      {/* 通用 **modal** */}
       {modal.open && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center"
-        >
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
           <div className="absolute inset-0 bg-black/40" />
           <div
             className="relative z-10 w-full max-w-md rounded-lg bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 p-4 shadow-xl"
@@ -326,8 +334,6 @@ export default function TierListEditor() {
             <div className="text-base font-semibold mb-3">
               {modal.type === "tier" ? "Edit Tier" : "Edit Item"}
             </div>
-
-            {/* 表单 **form** */}
             <div className="space-y-3">
               <label className="block">
                 <span className="text-sm text-gray-600 dark:text-gray-300">Name</span>
@@ -341,7 +347,6 @@ export default function TierListEditor() {
                   autoFocus
                 />
               </label>
-
               {modal.type === "tier" ? (
                 <label className="block">
                   <span className="text-sm text-gray-600 dark:text-gray-300">Color</span>
@@ -378,8 +383,6 @@ export default function TierListEditor() {
                 </label>
               )}
             </div>
-
-            {/* 动作 **actions** */}
             <div className="mt-4 flex justify-end gap-2">
               <button
                 className="px-3 py-1.5 rounded-md bg-gray-100 dark:bg-gray-700 hover:brightness-95"
