@@ -24,6 +24,31 @@ const t = useTranslations(Astro.currentLocale as Lang);
 <meta name="viewport" content="width=device-width,initial-scale=1" />
 <meta name="color-scheme" content="light dark">
 
+<!-- Performance Optimization -->
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<link rel="dns-prefetch" href="//analytics.ahrefs.com" />
+<link rel="dns-prefetch" href="//www.googletagmanager.com" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+
+<!-- Critical CSS -->
+<style is:inline>
+  /* Critical styles for above-the-fold content */
+  .gradient-text {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .animate-fade-in {
+    animation: fadeIn 0.6s ease-out;
+  }
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+</style>
+
 <link rel="icon" type="image/png" href="/favicon-96x96.png" sizes="96x96" />
 <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
 <link rel="shortcut icon" href="/favicon.ico" />
@@ -64,8 +89,52 @@ const t = useTranslations(Astro.currentLocale as Lang);
 <meta property="twitter:description" content={description} />
 <meta property="twitter:image" content={new URL(image.src, Astro.url)} />
 
+<!-- Additional SEO Meta Tags -->
+<meta name="robots" content="index, follow, max-image-preview:large" />
+<meta name="googlebot" content="index, follow" />
+<meta name="bingbot" content="index, follow" />
+
+<!-- Keywords -->
+<meta name="keywords" content="tier list maker, online tier list, free tier list, anime tier list, game tier list, character ranking, tier list template, create tier list, tier list creator, ranking maker" />
+
+<!-- Author and Publisher -->
+<meta name="author" content="TierList.Online" />
+<meta name="publisher" content="TierList.Online" />
+
+<!-- Canonical and Alternate Languages -->
+<link rel="canonical" href={canonicalURL} />
+<link rel="alternate" hreflang="en" href={canonicalURL} />
+<link rel="alternate" hreflang="x-default" href={canonicalURL} />
+
+<!-- Open Graph Enhancements -->
+<meta property="og:site_name" content={t(SITE_TITLE)} />
+<meta property="og:locale" content="en_US" />
+<meta property="og:image:width" content="1200" />
+<meta property="og:image:height" content="630" />
+<meta property="og:image:alt" content={title} />
+
+<!-- Twitter Enhancements -->
+<meta name="twitter:site" content="@tierlistonline" />
+<meta name="twitter:creator" content="@tierlistonline" />
+<meta name="twitter:image:alt" content={title} />
+
+<!-- Mobile and UI -->
+<meta name="mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-title" content={t(SITE_TITLE)} />
+<meta name="apple-mobile-web-app-status-bar-style" content="default" />
+
 <!-- Ahrefs Analytics -->
 <script
 	src="https://analytics.ahrefs.com/analytics.js"
 	data-key="KvtyK+22jK0FbZWERPZrXw"
 	async></script>
+
+<!-- Google Analytics -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=GA_MEASUREMENT_ID"></script>
+<script is:inline>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'GA_MEASUREMENT_ID');
+</script>

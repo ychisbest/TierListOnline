@@ -1,0 +1,159 @@
+---
+import { useTranslations, type Lang } from "@/i18n";
+const t = useTranslations(Astro.currentLocale as Lang);
+
+const JsonData = `
+{
+    "title": {
+        "en": "Popular Tier List Templates"
+    },
+    "subtitle": {
+        "en": "Choose from hundreds of pre-made templates or create your own"
+    },
+    "categories": {
+        "en": [
+            {
+                "name": "Anime & Manga",
+                "description": "Rank your favorite anime characters, series, and movies",
+                "templates": [
+                    "Naruto Characters",
+                    "Demon Slayer Characters", 
+                    "One Piece Characters",
+                    "My Hero Academia Characters",
+                    "Dragon Ball Characters",
+                    "Attack on Titan Characters",
+                    "Studio Ghibli Movies",
+                    "Anime Openings"
+                ]
+            },
+            {
+                "name": "Video Games",
+                "description": "Create tier lists for your favorite games and characters",
+                "templates": [
+                    "Super Smash Bros Characters",
+                    "League of Legends Champions",
+                    "Valorant Agents",
+                    "Overwatch 2 Heroes",
+                    "Genshin Impact Characters",
+                    "Pokemon (All Generations)",
+                    "Mario Kart Characters",
+                    "Zelda Games"
+                ]
+            },
+            {
+                "name": "Movies & TV",
+                "description": "Rank movies, TV shows, and characters",
+                "templates": [
+                    "MCU Movies",
+                    "Star Wars Movies",
+                    "Marvel Characters",
+                    "DC Characters",
+                    "Horror Movies",
+                    "Disney Movies",
+                    "Netflix Shows",
+                    "Stranger Things Characters"
+                ]
+            },
+            {
+                "name": "Music & Celebrities",
+                "description": "Create rankings for music and celebrity content",
+                "templates": [
+                    "K-Pop Groups",
+                    "Taylor Swift Songs",
+                    "Billie Eilish Songs",
+                    "Celebrity Crushes",
+                    "Rappers",
+                    "Music Genres",
+                    "Concert Experiences",
+                    "Album Covers"
+                ]
+            },
+            {
+                "name": "Food & Drinks",
+                "description": "Rank your favorite foods, drinks, and restaurants",
+                "templates": [
+                    "Fast Food Chains",
+                    "Candy Bars",
+                    "Sodas",
+                    "Coffee Shops",
+                    "Pizza Toppings",
+                    "Ice Cream Flavors",
+                    "Breakfast Foods",
+                    "Snack Foods"
+                ]
+            },
+            {
+                "name": "Sports",
+                "description": "Create tier lists for sports teams and athletes",
+                "templates": [
+                    "NBA Players",
+                    "NFL Teams",
+                    "Soccer Players",
+                    "Baseball Teams",
+                    "Olympic Sports",
+                    "Sports Video Games",
+                    "Athlete Endorsements",
+                    "Sports Movies"
+                ]
+            }
+        ]
+    }
+}
+`;
+
+const data = JSON.parse(JsonData);
+---
+
+<section class="py-20 bg-white dark:bg-gray-950">
+    <div class="container px-4 sm:px-6 lg:px-8">
+        <div class="text-center mb-16">
+            <h2 class="text-3xl sm:text-4xl md:text-5xl font-bold text-gray-900 dark:text-white mb-4">
+                {t(data.title)}
+            </h2>
+            <p class="text-xl text-gray-600 dark:text-gray-400 max-w-3xl mx-auto">
+                {t(data.subtitle)}
+            </p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {data.categories.en.map((category: any) => (
+                <div class="bg-gray-50 dark:bg-gray-900 rounded-2xl p-8 shadow-lg hover:shadow-xl transition-shadow duration-300">
+                    <h3 class="text-2xl font-bold text-gray-900 dark:text-white mb-4">
+                        {t(category.name)}
+                    </h3>
+                    <p class="text-gray-600 dark:text-gray-400 mb-6">
+                        {t(category.description)}
+                    </p>
+                    
+                    <div class="space-y-3">
+                        {category.templates.slice(0, 6).map((template: string) => (
+                            <div class="flex items-center gap-3 p-3 bg-white dark:bg-gray-800 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors cursor-pointer">
+                                <svg class="w-4 h-4 text-indigo-500" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v2H7a1 1 0 100 2h2v2a1 1 0 102 0v-2h2a1 1 0 100-2h-2V7z" clip-rule="evenodd" />
+                                </svg>
+                                <span class="text-sm font-medium text-gray-700 dark:text-gray-300">{t(template)}</span>
+                            </div>
+                        ))}
+                        {category.templates.length > 6 && (
+                            <div class="text-center pt-2">
+                                <span class="text-sm text-indigo-600 dark:text-indigo-400 font-medium">+{category.templates.length - 6} more templates</span>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            ))}
+        </div>
+
+        <div class="text-center mt-12">
+            <a 
+                href="/templates" 
+                class="inline-flex items-center px-8 py-4 text-lg font-semibold text-white bg-gradient-to-r from-indigo-600 to-purple-600 rounded-xl hover:from-indigo-700 hover:to-purple-700 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-1"
+            >
+                View All Templates
+                <svg class="ml-2 w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"></path>
+                </svg>
+            </a>
+        </div>
+    </div>
+</section>

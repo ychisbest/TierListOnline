@@ -6,10 +6,25 @@ const t = useTranslations(Astro.currentLocale as Lang);
 const JsonData = `
 {
     "h1": {
-        "en": "Tier List Online"
+        "en": "Free Online Tier List Maker"
     },
     "h2":{
-        "en": "Create and share your own tier lists!"
+        "en": "Create and share your own tier lists for anime, games, movies, and more!"
+    },
+    "subtitle": {
+        "en": "The easiest way to rank your favorite characters, games, and items. No signup required - start creating instantly!"
+    },
+    "features": {
+        "en": [
+            "No registration required",
+            "Customizable templates",
+            "Instant sharing",
+            "Mobile-friendly",
+            "Unlimited tier lists"
+        ]
+    },
+    "cta": {
+        "en": "Start Creating Now"
     }
 }
 `;
@@ -17,21 +32,49 @@ const JsonData = `
 const data = JSON.parse(JsonData);
 ---
 
-<section class="relative overflow-hidden py-20 sm:py-24 md:py-32 ">
-    <div class="container px-4 sm:px-6">
-        <div class="mx-auto flex max-w-5xl flex-col items-center">
+<section class="relative overflow-hidden py-16 sm:py-20 md:py-24 lg:py-32 animate-fade-in">
+    <div class="container px-4 sm:px-6 lg:px-8">
+        <div class="mx-auto flex max-w-7xl flex-col items-center">
             <div class="z-10 flex flex-col items-center gap-8 text-center w-full">
-                <div class="w-full">
-                    <h1 class="mb-4 sm:mb-6 text-pretty text-2xl sm:text-4xl md:text-5xl lg:text-6xl font-extrabold tracking-tight bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 bg-clip-text text-transparent">
+                <div class="w-full max-w-4xl">
+                    <h1 class="mb-4 sm:mb-6 text-pretty text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-extrabold tracking-tight bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 bg-clip-text text-transparent gradient-text">
                         {t(data.h1)}
                     </h1>
-                    <p class="text-zinc-600 dark:text-zinc-300 text-lg sm:text-xl md:text-2xl font-medium">
+                    <p class="text-zinc-600 dark:text-zinc-300 text-lg sm:text-xl md:text-2xl font-medium mb-6">
                         {t(data.h2)}
                     </p>
+                    <p class="text-zinc-500 dark:text-zinc-400 text-base sm:text-lg max-w-2xl mx-auto mb-8">
+                        {t(data.subtitle)}
+                    </p>
+                    
+                    <div class="flex flex-wrap justify-center gap-4 mb-12">
+                        {data.features.en.map((feature: string) => (
+                            <div class="flex items-center gap-2 bg-white/50 dark:bg-gray-800/50 backdrop-blur-sm px-4 py-2 rounded-full border border-gray-200 dark:border-gray-700">
+                                <svg class="w-4 h-4 text-green-500" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
+                                </svg>
+                                <span class="text-sm font-medium text-gray-700 dark:text-gray-300">{t(feature)}</span>
+                            </div>
+                        ))}
+                    </div>
+
+                    <div class="flex flex-col sm:flex-row gap-4 justify-center mb-16">
+                        <button 
+                            onclick="document.getElementById('tier-list-editor').scrollIntoView({behavior: 'smooth'})"
+                            class="inline-flex items-center justify-center px-8 py-4 text-lg font-semibold text-white bg-gradient-to-r from-indigo-600 to-purple-600 rounded-xl hover:from-indigo-700 hover:to-purple-700 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-1"
+                        >
+                            {t(data.cta)}
+                            <svg class="ml-2 w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"></path>
+                            </svg>
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
-        <div class="mt-24"></div>
-        <TierListEditor client:only></TierListEditor>
+        
+        <div id="tier-list-editor" class="mt-8">
+            <TierListEditor client:only></TierListEditor>
+        </div>
     </div>
 </section>

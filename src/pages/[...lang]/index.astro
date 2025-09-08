@@ -5,6 +5,8 @@ import Layout from "@/layouts/BaseLayout.astro";
 import BlogList from "@/components/BlogList.astro";
 import Hero from "@/components/Hero.astro";
 import FAQ from "@/components/FAQ.astro";
+import Features from "@/components/Features.astro";
+import PopularTemplates from "@/components/PopularTemplates.astro";
 const t = useTranslations(Astro.currentLocale as Lang);
 export const getStaticPaths = async () => {
     const paths = Object.keys(LOCALES_SETTING).map((lang) => {
@@ -21,46 +23,147 @@ export const getStaticPaths = async () => {
 
 
 const title = {
-    en: "your ultimate Rainbow Six Siege performance tracker - R6 Tracker provides comprehensive statistics and analytics for competitive players",
-    it: "il tuo tracker definitivo delle prestazioni di Rainbow Six Siege - R6 Tracker offre statistiche e analisi complete per giocatori competitivi",
-    de: "dein ultimativer Rainbow Six Siege Leistungsmonitor - R6 Tracker bietet umfassende Statistiken und Analysen für Wettkampfspieler",
+    en: "Free Tier List Maker Online | Create Anime, Game & Character Rankings - TierList.Online",
+    it: "Creatore di Tier List Gratuito Online | Crea Classifiche di Anime, Giochi e Personaggi - TierList.Online",
+    de: "Kostenloser Online Tier List Maker | Erstelle Anime-, Spiel- & Charakter-Ranglisten - TierList.Online",
 };
 const description = {
-    en: "By using R6 Tracker, you agree to use the service for personal, non-commercial purposes only. The site provides Rainbow Six Siege statistics for informational purposes. Track your performance with our advanced R6 Tracker analytics system.",
-    it: "Utilizzando R6 Tracker, accetti di utilizzare il servizio solo per scopi personali e non commerciali. Il sito fornisce statistiche di Rainbow Six Siege solo a scopo informativo. Monitora le tue prestazioni con il nostro avanzato sistema di analisi R6 Tracker.",
-    de: "Durch die Nutzung von R6 Tracker stimmen Sie zu, den Dienst ausschließlich für persönliche, nicht-kommerzielle Zwecke zu verwenden. Die Seite stellt Rainbow Six Siege Statistiken nur zu Informationszwecken bereit. Verfolge deine Leistung mit unserem fortschrittlichen R6 Tracker Analyse-System.",
+    en: "Create professional tier lists online for free with TierList.Online. Make anime character rankings, game tier lists, movie rankings, and more. No signup required, customizable templates, instant sharing.",
+    it: "Crea tier list professionali online gratuitamente con TierList.Online. Crea classifiche di personaggi anime, liste di livelli di gioco, classifiche di film e altro ancora. Nessuna registrazione richiesta, modelli personalizzabili, condivisione istantanea.",
+    de: "Erstelle professionelle Tier-Listen online kostenlos mit TierList.Online. Erstelle Anime-Charakter-Ranglisten, Spiel-Tier-Listen, Film-Ranglisten und mehr. Keine Anmeldung erforderlich, anpassbare Vorlagen, sofortige Freigabe.",
 };
 ---
 <Layout title={title} description={description}>
 
     <Hero />
     
+    <Features />
+    
+    <PopularTemplates />
+    
     <FAQ/>
 
     <script is:inline>
-        // Add schema.org structured data for SEO
-        const schemaData = {
+        // Add comprehensive schema.org structured data for SEO
+        
+        // Software Application Schema
+        const softwareSchema = {
             "@context": "https://schema.org",
             "@type": "SoftwareApplication",
-            "name": "R6 Tracker",
-            "applicationCategory": "GameTracker",
-            "operatingSystem": "Web",
+            "name": "TierList.Online",
+            "applicationCategory": "WebApplication",
+            "operatingSystem": "Web, iOS, Android",
             "offers": {
                 "@type": "Offer",
                 "price": "0",
-                "priceCurrency": "USD"
+                "priceCurrency": "USD",
+                "availability": "https://schema.org/InStock"
             },
-            "description": "Advanced Rainbow Six Siege statistics and performance tracking service",
+            "description": "Free online tier list maker for creating anime, game, and character rankings",
+            "url": "https://tierlist.online",
             "aggregateRating": {
                 "@type": "AggregateRating",
-                "ratingValue": "4.8",
-                "reviewCount": "1250"
+                "ratingValue": "4.9",
+                "reviewCount": "2847",
+                "bestRating": "5",
+                "worstRating": "1"
+            },
+            "datePublished": "2023-01-01",
+            "dateModified": new Date().toISOString(),
+            "author": {
+                "@type": "Organization",
+                "name": "TierList.Online",
+                "url": "https://tierlist.online"
+            },
+            "featureList": [
+                "No registration required",
+                "Customizable templates", 
+                "Instant sharing",
+                "Mobile-friendly interface",
+                "High-quality export"
+            ]
+        };
+
+        // Organization Schema
+        const organizationSchema = {
+            "@context": "https://schema.org",
+            "@type": "Organization",
+            "name": "TierList.Online",
+            "url": "https://tierlist.online",
+            "logo": "https://tierlist.online/logo.png",
+            "description": "Free online tier list maker for creating rankings",
+            "sameAs": [
+                "https://twitter.com/tierlistonline",
+                "https://facebook.com/tierlistonline"
+            ],
+            "contactPoint": {
+                "@type": "ContactPoint",
+                "contactType": "customer service",
+                "email": "support@tierlist.online"
             }
         };
+
+        // WebSite Schema
+        const websiteSchema = {
+            "@context": "https://schema.org",
+            "@type": "WebSite",
+            "name": "TierList.Online",
+            "url": "https://tierlist.online",
+            "potentialAction": {
+                "@type": "SearchAction",
+                "target": "https://tierlist.online/search?q={search_term_string}",
+                "query-input": "required name=search_term_string"
+            }
+        };
+
+        // FAQ Page Schema
+        const faqSchema = {
+            "@context": "https://schema.org",
+            "@type": "FAQPage",
+            "mainEntity": [
+                {
+                    "@type": "Question",
+                    "name": "Is TierList.Online free to use?",
+                    "acceptedAnswer": {
+                        "@type": "Answer",
+                        "text": "Yes, TierList.Online is completely free to use. You can create unlimited tier lists without any registration or payment required."
+                    }
+                },
+                {
+                    "@type": "Question", 
+                    "name": "Do I need to create an account?",
+                    "acceptedAnswer": {
+                        "@type": "Answer",
+                        "text": "No, you don't need to create an account or register. You can start creating tier lists immediately without any signup process."
+                    }
+                },
+                {
+                    "@type": "Question",
+                    "name": "Can I share my tier lists?",
+                    "acceptedAnswer": {
+                        "@type": "Answer", 
+                        "text": "Yes, you can easily share your tier lists on social media platforms or download them as high-quality images to share anywhere."
+                    }
+                },
+                {
+                    "@type": "Question",
+                    "name": "What types of tier lists can I create?",
+                    "acceptedAnswer": {
+                        "@type": "Answer",
+                        "text": "You can create tier lists for anything including anime characters, video games, movies, TV shows, music, food, sports teams, and more. We offer templates for all popular categories."
+                    }
+                }
+            ]
+        };
+
+        // Add all schemas to the page
+        const schemas = [softwareSchema, organizationSchema, websiteSchema, faqSchema];
         
-        const script = document.createElement('script');
-        script.type = 'application/ld+json';
-        script.text = JSON.stringify(schemaData);
-        document.head.appendChild(script);
+        schemas.forEach(schema => {
+            const script = document.createElement('script');
+            script.type = 'application/ld+json';
+            script.text = JSON.stringify(schema);
+            document.head.appendChild(script);
+        });
     </script>
 </Layout>

@@ -1,4 +1,24 @@
 import React, { useEffect, useMemo, useState, useCallback } from "react";
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragOverlay,
+} from "@dnd-kit/core";
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  verticalListSortingStrategy,
+  horizontalListSortingStrategy,
+} from "@dnd-kit/sortable";
+import {
+  useSortable,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 
 const mockItems = [
   { id: "i1", name: "Alpha", img: "https://placehold.jp/150x150.png" },
@@ -21,6 +41,106 @@ function generateId(prefix = "id") {
   return prefix + Math.random().toString(36).slice(2, 9);
 }
 
+// Sortable Item Component
+function SortableItem({ item, onContextMenu }) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: item.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      {...attributes}
+      {...listeners}
+      onContextMenu={(e) => onContextMenu(e, "item", item.id)}
+      className="relative w-20 flex-shrink-0 flex flex-col items-center gap-1 select-none cursor-grab transition-transform duration-200 ease-in-out"
+      title={item.name}
+    >
+      <img
+        className="w-20 h-20 rounded-md object-cover shadow-sm transition-opacity duration-200"
+        src={item.img}
+        alt={item.name}
+      />
+      <div className="absolute bottom-0 text-xs text-center w-full rounded-b-md truncate text-gray-100 py-1 bg-black/40">
+        {item.name}
+      </div>
+    </div>
+  );
+}
+
+// Sortable Tier Component
+function SortableTier({ tier, items, onContextMenu, onDrop, onDragOver }) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+  } = useSortable({ id: tier.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    borderColor: tier.color + "20"
+  };
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      {...attributes}
+      {...listeners}
+      className="flex flew-row rounded-lg overflow-hidden border shadow-sm transition-all duration-200 ease-in-out"
+
+      onDragOver={(e) => onDragOver(e, tier.id)}
+      onDrop={(e) => onDrop(e, tier.id)}
+      onContextMenu={(e) => onContextMenu(e, "tier", tier.id)}
+    >
+      <div
+        className="w-20 flex flex-col items-center justify-center p-3 text-sm font-semibold select-none cursor-context-menu"
+        style={{ background: tier.color, color: "#fff" }}
+        title="Right-click to edit tier"
+      >
+        <div className="text-white text-sm font-semibold">{tier.name}</div>
+      </div>
+      <div className="flex-1 bg-white dark:bg-gray-800 p-3 transition-all duration-200">
+        <SortableContext items={tier.items} strategy={horizontalListSortingStrategy}>
+          <div className="flex gap-3 flex-row flex-wrap py-1 min-h-[88px]">
+            {tier.items.length === 0 && (
+              <div className="text-sm text-gray-300 dark:text-gray-400">
+                Drop items here
+              </div>
+            )}
+            {tier.items.map((itemId) => {
+              const item = items.find((x) => x.id === itemId);
+              if (!item) return null;
+              return (
+                <SortableItem
+                  key={item.id}
+                  item={item}
+                  onContextMenu={onContextMenu}
+                />
+              );
+            })}
+          </div>
+        </SortableContext>
+      </div>
+    </div>
+  );
+}
+
 export default function TierListEditor() {
   const [items, setItems] = useState(mockItems);
   const [tiers, setTiers] = useState(mockTiers);
@@ -36,7 +156,15 @@ export default function TierListEditor() {
     id: null,
     form: { name: "", color: "#9ca3af", img: "" }
   });
-  const [draggingItem, setDraggingItem] = useState(null); // Track dragged item
+  const [activeId, setActiveId] = useState(null);
+  const [fileInput, setFileInput] = useState(null);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
 
   const findTierOfItem = useCallback(
     (itemId) => tiers.find((t) => t.items.includes(itemId)) || null,
@@ -48,43 +176,114 @@ export default function TierListEditor() {
     [items, findTierOfItem]
   );
 
-  // Drag & Drop Handlers
-  function handleDragStart(e, itemId) {
-    e.dataTransfer.setData("text/plain", itemId);
-    e.dataTransfer.effectAllowed = "move";
-    setDraggingItem(itemId);
-    // Add visual feedback
-    e.target.classList.add("opacity-50", "scale-95");
-  }
-
-  function handleDragEnd(e, itemId) {
-    setDraggingItem(null);
-    e.target.classList.remove("opacity-50", "scale-95");
-  }
-
-  function handleDragOver(e, targetTierId) {
-    e.preventDefault();
-    if (!draggingItem) return;
-    
-    // Real-time update of tiers during drag
-    setTiers((prev) => {
-      const without = prev.map((t) => ({
-        ...t,
-        items: t.items.filter((id) => id !== draggingItem)
-      }));
-      return without.map((t) =>
-        t.id === targetTierId ? { ...t, items: [...t.items, draggingItem] } : t
-      );
+  // Image upload handler
+  const handleImageUpload = async (file) => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        resolve(e.target.result);
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
     });
-  }
+  };
 
-  function handleDrop(e, targetTierId) {
-    e.preventDefault();
-    const itemId = e.dataTransfer.getData("text/plain");
-    if (!itemId) return;
-    // Finalize drop (already updated in dragover, so just clear dragging state)
-    setDraggingItem(null);
-  }
+  // Export functionality
+  const exportToJSON = () => {
+    const data = {
+      tiers: tiers.map(tier => ({
+        ...tier,
+        items: tier.items.map(itemId => {
+          const item = items.find(i => i.id === itemId);
+          return item ? { ...item } : null;
+        }).filter(Boolean)
+      })),
+      unassignedItems: unassignedItems,
+      exportDate: new Date().toISOString()
+    };
+
+    const jsonString = JSON.stringify(data, null, 2);
+    const blob = new Blob([jsonString], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `tierlist-${Date.now()}.json`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
+  // Import functionality
+  const importFromJSON = (event) => {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const data = JSON.parse(e.target.result);
+        
+        // Process imported data
+        const allItems = [];
+        const newTiers = data.tiers.map(tier => {
+          const tierItems = tier.items || [];
+          allItems.push(...tierItems);
+          return {
+            id: tier.id || generateId("t"),
+            name: tier.name,
+            color: tier.color,
+            items: tierItems.map(item => item.id)
+          };
+        });
+
+        const importedUnassigned = data.unassignedItems || [];
+        allItems.push(...importedUnassigned);
+
+        setItems(allItems);
+        setTiers(newTiers);
+      } catch (error) {
+        alert('Invalid JSON file format');
+      }
+    };
+    reader.readAsText(file);
+  };
+
+  // Drag & Drop Handlers
+  const handleDragStart = (event) => {
+    setActiveId(event.active.id);
+  };
+
+  const handleDragEnd = (event) => {
+    const { active, over } = event;
+    
+    if (!over) {
+      setActiveId(null);
+      return;
+    }
+
+    const activeId = active.id;
+    const overId = over.id;
+
+    // Find which tier the item is currently in
+    const currentTier = tiers.find(tier => tier.items.includes(activeId));
+    const overTier = tiers.find(tier => tier.id === overId);
+
+    if (overTier && currentTier?.id !== overTier.id) {
+      // Move item between tiers
+      setTiers(prev => prev.map(tier => {
+        if (tier.id === currentTier?.id) {
+          return { ...tier, items: tier.items.filter(id => id !== activeId) };
+        }
+        if (tier.id === overTier.id) {
+          return { ...tier, items: [...tier.items, activeId] };
+        }
+        return tier;
+      }));
+    }
+
+    setActiveId(null);
+  };
 
   function removeItemFromTiers(itemId) {
     setTiers((prev) =>
@@ -177,130 +376,111 @@ export default function TierListEditor() {
     closeContextMenu();
   }
 
+  const activeItem = activeId ? items.find(item => item.id === activeId) : null;
+
   return (
     <div className="p-4 text-gray-900 dark:text-gray-100">
       <div className="max-w-6xl mx-auto flex flex-col gap-4">
-        <main className="flex-1 space-y-3">
-          {tiers.length === 0 && (
-            <div className="p-6 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-center text-gray-600 dark:text-gray-300">
-              No tiers yet. Right-click to add (暂不提供新增入口，可在外部创建数据)。
-            </div>
-          )}
-
-          <div className="space-y-3">
-            {tiers.map((tier) => (
-              <div
-                key={tier.id}
-                onDragOver={(e) => handleDragOver(e, tier.id)}
-                onDrop={(e) => handleDrop(e, tier.id)}
-                onContextMenu={(e) => openContextMenu(e, "tier", tier.id)}
-                className="flex flew-row rounded-lg overflow-hidden border shadow-sm transition-all duration-200 ease-in-out"
-                style={{ borderColor: tier.color + "20" }}
-              >
-                <div
-                  className="w-20 flex flex-col items-center justify-center p-3 text-sm font-semibold select-none cursor-context-menu"
-                  style={{ background: tier.color, color: "#fff" }}
-                  title="Right-click to edit tier"
-                >
-                  <div className="text-white text-sm font-semibold">{tier.name}</div>
-                </div>
-                <div className="flex-1 bg-white dark:bg-gray-800 p-3 transition-all duration-200">
-                  <div className="flex gap-3 flex-row flex-wrap py-1">
-                    {tier.items.length === 0 && (
-                      <div className="text-sm text-gray-300 dark:text-gray-400">
-                        Drop items here
-                      </div>
-                    )}
-                    {tier.items.map((itemId) => {
-                      const it = items.find((x) => x.id === itemId);
-                      if (!it) return null;
-                      return (
-                        <div
-                          key={it.id}
-                          draggable
-                          onDragStart={(e) => handleDragStart(e, it.id)}
-                          onDragEnd={(e) => handleDragEnd(e, it.id)}
-                          onContextMenu={(e) => openContextMenu(e, "item", it.id)}
-                          className="relative flex-shrink-0 w-22 flex flex-col items-center gap-2 p-1 rounded-md  cursor-grab  duration-200 ease-in-out transition-all"
-                          title="Right-click to edit item"
-                        >
-                          <img
-                            className="w-20 h-20 rounded-md object-cover transition-opacity duration-200"
-                            src={it.img}
-                            alt={it.name}
-                          />
-                          <div className="w-20 absolute bottom-0 m-1 rounded-b-md bg-black/50 text-white text-xs text-center truncate">
-                            {it.name}
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </main>
-
-        <aside
-          className=" mt-10"
-        >
-
-          <div
-            onDragOver={(e) => handleDragOver(e, null)}
-            onDrop={(e) => {
-              const itemId = e.dataTransfer.getData("text/plain");
-              if (!itemId) return;
-              removeItemFromTiers(itemId);
-              setDraggingItem(null);
-            }}
-            className="min-h-[96px] border-2 border-dashed border-gray-200 dark:border-gray-700 rounded-md p-3 flex flex-wrap gap-3 overflow-auto bg-white/50 dark:bg-gray-700/60"
+        {/* Control Panel */}
+        <div className="flex gap-2 mb-4">
+          <button
+            onClick={exportToJSON}
+            className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors"
           >
-            {unassignedItems.map((it) => (
-              <div
-                key={it.id}
-                draggable
-                onDragStart={(e) => handleDragStart(e, it.id)}
-                onDragEnd={(e) => handleDragEnd(e, it.id)}
-                onContextMenu={(e) => openContextMenu(e, "item", it.id)}
-                className="relative w-20 flex-shrink-0 flex flex-col items-center gap-1 select-none cursor-grab transition-transform duration-200 ease-in-out"
-                title={it.name}
-              >
+            Export JSON
+          </button>
+          <label className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors cursor-pointer">
+            Import JSON
+            <input
+              type="file"
+              accept=".json"
+              onChange={importFromJSON}
+              className="hidden"
+            />
+          </label>
+        </div>
+
+        <DndContext
+          sensors={sensors}
+          collisionDetection={closestCenter}
+          onDragStart={handleDragStart}
+          onDragEnd={handleDragEnd}
+        >
+          <main className="flex-1 space-y-3">
+            {tiers.length === 0 && (
+              <div className="p-6 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-center text-gray-600 dark:text-gray-300">
+                No tiers yet. Right-click to add (暂不提供新增入口，可在外部创建数据)。
+              </div>
+            )}
+
+            <SortableContext items={tiers.map(t => t.id)} strategy={verticalListSortingStrategy}>
+              <div className="space-y-3">
+                {tiers.map((tier) => (
+                  <SortableTier
+                    key={tier.id}
+                    tier={tier}
+                    items={items}
+                    onContextMenu={openContextMenu}
+                    onDrop={handleDragEnd}
+                    onDragOver={(e) => e.preventDefault()}
+                  />
+                ))}
+              </div>
+            </SortableContext>
+          </main>
+
+          <aside className="mt-10">
+            <div className="min-h-[96px] border-2 border-dashed border-gray-200 dark:border-gray-700 rounded-md p-3 flex flex-wrap gap-3 overflow-auto bg-white/50 dark:bg-gray-700/60">
+              <SortableContext items={unassignedItems.map(item => item.id)} strategy={horizontalListSortingStrategy}>
+                {unassignedItems.map((it) => (
+                  <SortableItem
+                    key={it.id}
+                    item={it}
+                    onContextMenu={openContextMenu}
+                  />
+                ))}
+              </SortableContext>
+              <div className="w-20 flex-shrink-0 flex flex-col items-center gap-1 select-none">
+                <button
+                  type="button"
+                  title="Add item"
+                  onClick={() => {
+                    const id = generateId("i");
+                    const newItem = { id, name: "New Item", img: "https://placehold.jp/150x150.png" };
+                    setItems((s) => [newItem, ...s]);
+                    setModal({
+                      open: true,
+                      type: "item",
+                      id,
+                      form: { name: newItem.name, img: newItem.img, color: "#9ca3af" }
+                    });
+                  }}
+                  className="w-20 h-20 cursor-pointer rounded-md border-2 border-dashed border-gray-300 dark:border-gray-700 flex items-center justify-center text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700/50"
+                >
+                  <svg width="28" height="28" viewBox="0 0 24 24" fill="none" aria-hidden focusable="false">
+                    <path d="M12 5v14" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                    <path d="M5 12h14" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                </button>
+              </div>
+            </div>
+          </aside>
+
+          <DragOverlay>
+            {activeItem ? (
+              <div className="relative w-20 flex-shrink-0 flex flex-col items-center gap-1 select-none cursor-grabbing">
                 <img
-                  className="w-20 h-20 rounded-md object-cover shadow-sm transition-opacity duration-200"
-                  src={it.img}
-                  alt={it.name}
+                  className="w-20 h-20 rounded-md object-cover shadow-lg transition-opacity duration-200"
+                  src={activeItem.img}
+                  alt={activeItem.name}
                 />
                 <div className="absolute bottom-0 text-xs text-center w-full rounded-b-md truncate text-gray-100 py-1 bg-black/40">
-                  {it.name}
+                  {activeItem.name}
                 </div>
               </div>
-            ))}
-            <div className="w-20 flex-shrink-0 flex flex-col items-center gap-1 select-none">
-              <button
-                type="button"
-                title="Add item"
-                onClick={() => {
-                  const id = generateId("i");
-                  const newItem = { id, name: "New Item", img: "https://placehold.jp/150x150.png" };
-                  setItems((s) => [newItem, ...s]);
-                  setModal({
-                    open: true,
-                    type: "item",
-                    id,
-                    form: { name: newItem.name, img: newItem.img, color: "#9ca3af" }
-                  });
-                }}
-                className="w-20 h-20 cursor-pointer rounded-md border-2 border-dashed border-gray-300 dark:border-gray-700 flex items-center justify-center text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700/50"
-              >
-                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" aria-hidden focusable="false">
-                  <path d="M12 5v14" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                  <path d="M5 12h14" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                </svg>
-              </button>
-            </div>
-          </div>
-        </aside>
+            ) : null}
+          </DragOverlay>
+        </DndContext>
       </div>
 
       {menu.open && (
@@ -369,18 +549,39 @@ export default function TierListEditor() {
                   </div>
                 </label>
               ) : (
-                <label className="block">
-                  <span className="text-sm text-gray-600 dark:text-gray-300">Image URL</span>
-                  <input
-                    className="mt-1 w-full rounded-md border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2"
-                    value={modal.form.img}
-                    onChange={(e) =>
-                      setModal((m) => ({ ...m, form: { ...m.form, img: e.target.value } }))
-                    }
-                    onKeyDown={(e) => e.key === "Enter" && submitModal()}
-                    placeholder="https://..."
-                  />
-                </label>
+                <>
+                  <label className="block">
+                    <span className="text-sm text-gray-600 dark:text-gray-300">Image URL</span>
+                    <input
+                      className="mt-1 w-full rounded-md border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2"
+                      value={modal.form.img}
+                      onChange={(e) =>
+                        setModal((m) => ({ ...m, form: { ...m.form, img: e.target.value } }))
+                      }
+                      onKeyDown={(e) => e.key === "Enter" && submitModal()}
+                      placeholder="https://..."
+                    />
+                  </label>
+                  <div className="block">
+                    <span className="text-sm text-gray-600 dark:text-gray-300">Or upload image:</span>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={async (e) => {
+                        const file = e.target.files[0];
+                        if (file) {
+                          try {
+                            const base64 = await handleImageUpload(file);
+                            setModal((m) => ({ ...m, form: { ...m.form, img: base64 } }));
+                          } catch (error) {
+                            alert('Failed to upload image');
+                          }
+                        }
+                      }}
+                      className="mt-1 w-full rounded-md border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2"
+                    />
+                  </div>
+                </>
               )}
             </div>
             <div className="mt-4 flex justify-end gap-2">
