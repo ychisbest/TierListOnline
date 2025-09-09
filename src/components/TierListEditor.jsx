@@ -1,4 +1,5 @@
-import React, { useEffect, useMemo, useState, useCallback } from "react";
+import React, { useState, useRef } from 'react';
+import html2canvas from 'html2canvas';
 import {
   DndContext,
   closestCenter,
@@ -7,42 +8,60 @@ import {
   useSensor,
   useSensors,
   DragOverlay,
-} from "@dnd-kit/core";
+  useDroppable,
+} from '@dnd-kit/core';
 import {
   arrayMove,
   SortableContext,
   sortableKeyboardCoordinates,
   verticalListSortingStrategy,
   horizontalListSortingStrategy,
-} from "@dnd-kit/sortable";
+} from '@dnd-kit/sortable';
 import {
   useSortable,
-} from "@dnd-kit/sortable";
-import { CSS } from "@dnd-kit/utilities";
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 
-const mockItems = [
-  { id: "i1", name: "Alpha", img: "https://placehold.jp/150x150.png" },
-  { id: "i2", name: "Bravo", img: "https://placehold.jp/150x150.png" },
-  { id: "i3", name: "Charlie", img: "https://placehold.jp/150x150.png" },
-  { id: "i4", name: "Delta", img: "https://placehold.jp/150x150.png" },
-  { id: "i6", name: "Echo", img: "https://placehold.jp/150x150.png" },
-  { id: "i7", name: "Echo", img: "https://placehold.jp/150x150.png" },
-  { id: "i8", name: "Echo", img: "https://placehold.jp/150x150.png" },
-  { id: "i9", name: "Echo", img: "https://placehold.jp/150x150.png" }
+// Fighting game characters data
+const FIGHTING_GAME_CHARACTERS = {
+  'Street Fighter 6': [
+    { id: 'ryu', name: 'Ryu', image: '/images/characters/ryu.png' },
+    { id: 'chunli', name: 'Chun-Li', image: '/images/characters/chunli.png' },
+    { id: 'luke', name: 'Luke', image: '/images/characters/luke.png' },
+    { id: 'jamie', name: 'Jamie', image: '/images/characters/jamie.png' },
+    { id: 'manon', name: 'Manon', image: '/images/characters/manon.png' },
+    { id: 'deejay', name: 'Dee Jay', image: '/images/characters/deejay.png' },
+    { id: 'jp', name: 'JP', image: '/images/characters/jp.png' },
+    { id: 'marisa', name: 'Marisa', image: '/images/characters/marisa.png' },
+  ],
+  'Tekken 8': [
+    { id: 'jin', name: 'Jin Kazama', image: '/images/characters/jin.png' },
+    { id: 'kazuya', name: 'Kazuya Mishima', image: '/images/characters/kazuya.png' },
+    { id: 'nina', name: 'Nina Williams', image: '/images/characters/nina.png' },
+    { id: 'paul', name: 'Paul Phoenix', image: '/images/characters/paul.png' },
+    { id: 'law', name: 'Marshall Law', image: '/images/characters/law.png' },
+    { id: 'xiaoyu', name: 'Ling Xiaoyu', image: '/images/characters/xiaoyu.png' },
+  ],
+  'Guilty Gear Strive': [
+    { id: 'sol', name: 'Sol Badguy', image: '/images/characters/sol.png' },
+    { id: 'ky', name: 'Ky Kiske', image: '/images/characters/ky.png' },
+    { id: 'may', name: 'May', image: '/images/characters/may.png' },
+    { id: 'axl', name: 'Axl Low', image: '/images/characters/axl.png' },
+    { id: 'chipp', name: 'Chipp Zanuff', image: '/images/characters/chipp.png' },
+    { id: 'potemkin', name: 'Potemkin', image: '/images/characters/potemkin.png' },
+  ]
+};
+
+// Default tier configuration
+const DEFAULT_TIERS = [
+  { id: 's', name: 'S', color: '#ff4444', description: 'Top Tier' },
+  { id: 'a', name: 'A', color: '#ff8844', description: 'High Tier' },
+  { id: 'b', name: 'B', color: '#ffcc44', description: 'Mid Tier' },
+  { id: 'c', name: 'C', color: '#88cc44', description: 'Low Tier' },
+  { id: 'd', name: 'D', color: '#4488cc', description: 'Bottom Tier' },
 ];
 
-const mockTiers = [
-  { id: "t1", name: "S", color: "#ef4444", items: ["i1", "i2"] },
-  { id: "t2", name: "A", color: "#f59e0b", items: ["i3"] },
-  { id: "t3", name: "B", color: "#3b82f6", items: [] }
-];
-
-function generateId(prefix = "id") {
-  return prefix + Math.random().toString(36).slice(2, 9);
-}
-
-// Sortable Item Component
-function SortableItem({ item, onContextMenu }) {
+const SortableItem = ({ id, children }) => {
   const {
     attributes,
     listeners,
@@ -50,7 +69,7 @@ function SortableItem({ item, onContextMenu }) {
     transform,
     transition,
     isDragging,
-  } = useSortable({ id: item.id });
+  } = useSortable({ id });
 
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -59,197 +78,92 @@ function SortableItem({ item, onContextMenu }) {
   };
 
   return (
-    <div
-      ref={setNodeRef}
-      style={style}
-      {...attributes}
-      {...listeners}
-      onContextMenu={(e) => onContextMenu(e, "item", item.id)}
-      className="relative w-20 flex-shrink-0 flex flex-col items-center gap-1 select-none cursor-grab transition-transform duration-200 ease-in-out"
-      title={item.name}
-    >
-      <img
-        className="w-20 h-20 rounded-md object-cover shadow-sm transition-opacity duration-200"
-        src={item.img}
-        alt={item.name}
-      />
-      <div className="absolute bottom-0 text-xs text-center w-full rounded-b-md truncate text-gray-100 py-1 bg-black/40">
-        {item.name}
-      </div>
+    <div ref={setNodeRef} style={style} {...attributes} {...listeners}>
+      {children}
     </div>
   );
-}
+};
 
-// Sortable Tier Component
-function SortableTier({ tier, items, onContextMenu, onDrop, onDragOver }) {
-  const {
-    attributes,
-    listeners,
-    setNodeRef,
-    transform,
-    transition,
-  } = useSortable({ id: tier.id });
+const CharacterCard = ({ character, onRemove }) => {
+  return (
+    <div className="relative group bg-white rounded-lg shadow-md p-2 cursor-move hover:shadow-lg transition-all">
+      <button
+        onClick={(e) => {
+          e.stopPropagation();
+          onRemove();
+        }}
+        className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-10"
+      >
+        ×
+      </button>
+      <div className="w-16 h-16 bg-gray-200 rounded flex items-center justify-center mb-2">
+        {character.image ? (
+          <img src={character.image} alt={character.name} className="w-full h-full object-cover rounded" />
+        ) : (
+          <span className="text-gray-500 text-xs">{character.name.charAt(0)}</span>
+        )}
+      </div>
+      <p className="text-xs text-center font-medium text-gray-700">{character.name}</p>
+    </div>
+  );
+};
 
-  const style = {
-    transform: CSS.Transform.toString(transform),
-    transition,
-    borderColor: tier.color + "20"
-  };
+const DroppableTier = ({ tier, children, onDrop }) => {
+  const { setNodeRef, isOver } = useDroppable({
+    id: `tier-${tier.id}`,
+  });
 
   return (
     <div
       ref={setNodeRef}
-      style={style}
-      {...attributes}
-      {...listeners}
-      className="flex flew-row rounded-lg overflow-hidden border shadow-sm transition-all duration-200 ease-in-out"
-
-      onDragOver={(e) => onDragOver(e, tier.id)}
-      onDrop={(e) => onDrop(e, tier.id)}
-      onContextMenu={(e) => onContextMenu(e, "tier", tier.id)}
+      className={`flex-1 min-h-24 p-4 bg-gray-50 border-2 border-dashed transition-colors ${
+        isOver ? 'border-blue-400 bg-blue-50' : 'border-gray-300'
+      }`}
     >
-      <div
-        className="w-20 flex flex-col items-center justify-center p-3 text-sm font-semibold select-none cursor-context-menu"
-        style={{ background: tier.color, color: "#fff" }}
-        title="Right-click to edit tier"
-      >
-        <div className="text-white text-sm font-semibold">{tier.name}</div>
-      </div>
-      <div className="flex-1 bg-white dark:bg-gray-800 p-3 transition-all duration-200">
-        <SortableContext items={tier.items} strategy={horizontalListSortingStrategy}>
-          <div className="flex gap-3 flex-row flex-wrap py-1 min-h-[88px]">
-            {tier.items.length === 0 && (
-              <div className="text-sm text-gray-300 dark:text-gray-400">
-                Drop items here
-              </div>
-            )}
-            {tier.items.map((itemId) => {
-              const item = items.find((x) => x.id === itemId);
-              if (!item) return null;
-              return (
-                <SortableItem
-                  key={item.id}
-                  item={item}
-                  onContextMenu={onContextMenu}
-                />
-              );
-            })}
-          </div>
-        </SortableContext>
-      </div>
+      {children}
     </div>
   );
-}
+};
+
+const DroppablePool = ({ children, onDrop }) => {
+  const { setNodeRef, isOver } = useDroppable({
+    id: 'character-pool',
+  });
+
+  return (
+    <div
+      ref={setNodeRef}
+      className={`min-h-32 p-4 bg-gray-100 border-2 border-dashed rounded-lg transition-colors ${
+        isOver ? 'border-green-400 bg-green-50' : 'border-gray-300'
+      }`}
+    >
+      {children}
+    </div>
+  );
+};
 
 export default function TierListEditor() {
-  const [items, setItems] = useState(mockItems);
-  const [tiers, setTiers] = useState(mockTiers);
-  const [menu, setMenu] = useState({
-    open: false,
-    x: 0,
-    y: 0,
-    target: null
-  });
-  const [modal, setModal] = useState({
-    open: false,
-    type: null,
-    id: null,
-    form: { name: "", color: "#9ca3af", img: "" }
-  });
+  const [tiers, setTiers] = useState(DEFAULT_TIERS);
+  const [characters, setCharacters] = useState(FIGHTING_GAME_CHARACTERS['Street Fighter 6']);
+  const [tierCharacters, setTierCharacters] = useState({});
   const [activeId, setActiveId] = useState(null);
-  const [fileInput, setFileInput] = useState(null);
+  const [selectedGame, setSelectedGame] = useState('Street Fighter 6');
+  const [tierName, setTierName] = useState('');
+  const [tierDescription, setTierDescription] = useState('');
+  const [isExporting, setIsExporting] = useState(false);
+  const canvasRef = useRef(null);
 
   const sensors = useSensors(
-    useSensor(PointerSensor),
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 8,
+      },
+    }),
     useSensor(KeyboardSensor, {
       coordinateGetter: sortableKeyboardCoordinates,
     })
   );
 
-  const findTierOfItem = useCallback(
-    (itemId) => tiers.find((t) => t.items.includes(itemId)) || null,
-    [tiers]
-  );
-
-  const unassignedItems = useMemo(
-    () => items.filter((it) => !findTierOfItem(it.id)),
-    [items, findTierOfItem]
-  );
-
-  // Image upload handler
-  const handleImageUpload = async (file) => {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        resolve(e.target.result);
-      };
-      reader.onerror = reject;
-      reader.readAsDataURL(file);
-    });
-  };
-
-  // Export functionality
-  const exportToJSON = () => {
-    const data = {
-      tiers: tiers.map(tier => ({
-        ...tier,
-        items: tier.items.map(itemId => {
-          const item = items.find(i => i.id === itemId);
-          return item ? { ...item } : null;
-        }).filter(Boolean)
-      })),
-      unassignedItems: unassignedItems,
-      exportDate: new Date().toISOString()
-    };
-
-    const jsonString = JSON.stringify(data, null, 2);
-    const blob = new Blob([jsonString], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `tierlist-${Date.now()}.json`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
-  };
-
-  // Import functionality
-  const importFromJSON = (event) => {
-    const file = event.target.files[0];
-    if (!file) return;
-
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      try {
-        const data = JSON.parse(e.target.result);
-        
-        // Process imported data
-        const allItems = [];
-        const newTiers = data.tiers.map(tier => {
-          const tierItems = tier.items || [];
-          allItems.push(...tierItems);
-          return {
-            id: tier.id || generateId("t"),
-            name: tier.name,
-            color: tier.color,
-            items: tierItems.map(item => item.id)
-          };
-        });
-
-        const importedUnassigned = data.unassignedItems || [];
-        allItems.push(...importedUnassigned);
-
-        setItems(allItems);
-        setTiers(newTiers);
-      } catch (error) {
-        alert('Invalid JSON file format');
-      }
-    };
-    reader.readAsText(file);
-  };
-
-  // Drag & Drop Handlers
   const handleDragStart = (event) => {
     setActiveId(event.active.id);
   };
@@ -265,342 +179,397 @@ export default function TierListEditor() {
     const activeId = active.id;
     const overId = over.id;
 
-    // Find which tier the item is currently in
-    const currentTier = tiers.find(tier => tier.items.includes(activeId));
-    const overTier = tiers.find(tier => tier.id === overId);
-
-    if (overTier && currentTier?.id !== overTier.id) {
-      // Move item between tiers
-      setTiers(prev => prev.map(tier => {
-        if (tier.id === currentTier?.id) {
-          return { ...tier, items: tier.items.filter(id => id !== activeId) };
+    // Check if dropped on a tier
+    if (overId.startsWith('tier-')) {
+      const tierId = overId.replace('tier-', '');
+      
+      // Check if character is from the character pool
+      const character = characters.find(c => c.id === activeId);
+      if (character) {
+        // Move from pool to tier
+        setCharacters(prev => prev.filter(c => c.id !== activeId));
+        setTierCharacters(prev => ({
+          ...prev,
+          [tierId]: [...(prev[tierId] || []), character]
+        }));
+      } else {
+        // Move between tiers
+        const sourceTier = Object.keys(tierCharacters).find(tierId => 
+          tierCharacters[tierId]?.some(c => c.id === activeId)
+        );
+        
+        if (sourceTier && sourceTier !== tierId) {
+          const characterToMove = tierCharacters[sourceTier].find(c => c.id === activeId);
+          setTierCharacters(prev => ({
+            ...prev,
+            [sourceTier]: prev[sourceTier].filter(c => c.id !== activeId),
+            [tierId]: [...(prev[tierId] || []), characterToMove]
+          }));
         }
-        if (tier.id === overTier.id) {
-          return { ...tier, items: [...tier.items, activeId] };
-        }
-        return tier;
-      }));
+      }
+    } else if (overId === 'character-pool') {
+      // Move back to character pool
+      const sourceTier = Object.keys(tierCharacters).find(tierId => 
+        tierCharacters[tierId]?.some(c => c.id === activeId)
+      );
+      
+      if (sourceTier) {
+        const characterToMove = tierCharacters[sourceTier].find(c => c.id === activeId);
+        setTierCharacters(prev => ({
+          ...prev,
+          [sourceTier]: prev[sourceTier].filter(c => c.id !== activeId)
+        }));
+        setCharacters(prev => [...prev, characterToMove]);
+      }
     }
 
     setActiveId(null);
   };
 
-  function removeItemFromTiers(itemId) {
-    setTiers((prev) =>
-      prev.map((t) => ({ ...t, items: t.items.filter((id) => id !== itemId) }))
-    );
-  }
+  const addTier = () => {
+    if (!tierName.trim()) return;
+    
+    const newTier = {
+      id: `tier-${Date.now()}`,
+      name: tierName,
+      color: '#' + Math.floor(Math.random()*16777215).toString(16),
+      description: tierDescription
+    };
+    
+    setTiers([...tiers, newTier]);
+    setTierName('');
+    setTierDescription('');
+  };
 
-  function openContextMenu(e, type, id) {
-    e.preventDefault();
-    e.stopPropagation();
-    setMenu({ open: true, x: e.clientX, y: e.clientY, target: { type, id } });
-  }
+  const removeTier = (tierId) => {
+    // Move characters back to pool
+    const charactersInTier = tierCharacters[tierId] || [];
+    setCharacters(prev => [...prev, ...charactersInTier]);
+    
+    // Remove tier
+    setTiers(tiers.filter(tier => tier.id !== tierId));
+    
+    // Clean up tierCharacters
+    const newTierCharacters = { ...tierCharacters };
+    delete newTierCharacters[tierId];
+    setTierCharacters(newTierCharacters);
+  };
 
-  function closeContextMenu() {
-    setMenu((m) => (m.open ? { ...m, open: false } : m));
-  }
+  const updateTier = (tierId, updates) => {
+    setTiers(tiers.map(tier => 
+      tier.id === tierId ? { ...tier, ...updates } : tier
+    ));
+  };
 
-  useEffect(() => {
-    const onGlobal = (e) => {
-      if (e.type === "keydown" && e.key === "Escape") {
-        closeContextMenu();
-        closeModal();
-      } else if (e.type === "click") {
-        closeContextMenu();
+  const removeCharacterFromTier = (tierId, characterId) => {
+    const character = tierCharacters[tierId].find(c => c.id === characterId);
+    setTierCharacters(prev => ({
+      ...prev,
+      [tierId]: prev[tierId].filter(c => c.id !== characterId)
+    }));
+    setCharacters(prev => [...prev, character]);
+  };
+
+  const exportAsJSON = () => {
+    const data = {
+      tiers,
+      tierCharacters,
+      metadata: {
+        game: selectedGame,
+        createdAt: new Date().toISOString(),
+        version: '1.0'
       }
     };
-    window.addEventListener("click", onGlobal);
-    window.addEventListener("keydown", onGlobal);
-    return () => {
-      window.removeEventListener("click", onGlobal);
-      window.removeEventListener("keydown", onGlobal);
+    
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `tierlist-${selectedGame.replace(/\s+/g, '-')}-${Date.now()}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const importFromJSON = (event) => {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const data = JSON.parse(e.target.result);
+        if (data.tiers) setTiers(data.tiers);
+        if (data.tierCharacters) setTierCharacters(data.tierCharacters);
+        if (data.metadata?.game) setSelectedGame(data.metadata.game);
+      } catch (error) {
+        alert('Import failed: Invalid file format');
+      }
     };
-  }, []);
+    reader.readAsText(file);
+  };
 
-  function openModalFor(target) {
-    if (!target) return;
-    if (target.type === "tier") {
-      const t = tiers.find((x) => x.id === target.id);
-      if (!t) return;
-      setModal({
-        open: true,
-        type: "tier",
-        id: t.id,
-        form: { name: t.name, color: t.color, img: "" }
+  const exportAsImage = async () => {
+    setIsExporting(true);
+    try {
+      const tierListElement = document.querySelector('#tierlist-container');
+      if (!tierListElement) {
+        alert('Cannot find tier list container');
+        return;
+      }
+
+      const canvas = await html2canvas(tierListElement, {
+        backgroundColor: '#ffffff',
+        scale: 2,
+        useCORS: true,
+        allowTaint: true,
       });
-    } else {
-      const it = items.find((x) => x.id === target.id);
-      if (!it) return;
-      setModal({
-        open: true,
-        type: "item",
-        id: it.id,
-        form: { name: it.name, img: it.img, color: "#9ca3af" }
-      });
+
+      const link = document.createElement('a');
+      link.download = `tierlist-${selectedGame.replace(/\s+/g, '-')}-${Date.now()}.png`;
+      link.href = canvas.toDataURL('image/png');
+      link.click();
+    } catch (error) {
+      console.error('Image export failed:', error);
+      alert('Image export failed, please try again');
+    } finally {
+      setIsExporting(false);
     }
-  }
+  };
 
-  function closeModal() {
-    setModal((m) => (m.open ? { ...m, open: false } : m));
-  }
-
-  function submitModal() {
-    if (!modal.open) return;
-    if (modal.type === "tier") {
-      const { name, color } = modal.form;
-      setTiers((prev) =>
-        prev.map((t) => (t.id === modal.id ? { ...t, name, color } : t))
-      );
-    } else if (modal.type === "item") {
-      const { name, img } = modal.form;
-      setItems((prev) => prev.map((it) => (it.id === modal.id ? { ...it, name, img } : it)));
+  const resetTierList = () => {
+    if (confirm('Are you sure you want to reset the entire tier list? All data will be lost.')) {
+      setTierCharacters({});
+      setCharacters(FIGHTING_GAME_CHARACTERS[selectedGame]);
+      setTiers(DEFAULT_TIERS);
     }
-    closeModal();
-  }
+  };
 
-  function onMenuEdit() {
-    openModalFor(menu.target);
-    closeContextMenu();
-  }
+  const getTierStats = () => {
+    const total = Object.values(tierCharacters).reduce((sum, chars) => sum + chars.length, 0);
+    const remaining = characters.length;
+    return { total, remaining };
+  };
 
-  function onMenuDelete() {
-    const target = menu.target;
-    if (!target) return;
-    if (target.type === "tier") {
-      setTiers((prev) => prev.filter((t) => t.id !== target.id));
-    } else {
-      removeItemFromTiers(target.id);
-      setItems((prev) => prev.filter((it) => it.id !== target.id));
-    }
-    closeContextMenu();
-  }
-
-  const activeItem = activeId ? items.find(item => item.id === activeId) : null;
+  const stats = getTierStats();
 
   return (
-    <div className="p-4 text-gray-900 dark:text-gray-100">
-      <div className="max-w-6xl mx-auto flex flex-col gap-4">
-        {/* Control Panel */}
-        <div className="flex gap-2 mb-4">
-          <button
-            onClick={exportToJSON}
-            className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors"
-          >
-            Export JSON
-          </button>
-          <label className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors cursor-pointer">
-            Import JSON
+    <div className="max-w-7xl mx-auto p-6">
+      <div className="mb-8 text-center">
+        <h1 className="text-4xl font-bold text-gray-800 mb-4">Fighting Game Character Tier List Maker</h1>
+        <p className="text-gray-600">Drag and drop characters to different tiers to create your fighting game character rankings</p>
+        <div className="mt-4 flex justify-center gap-6 text-sm text-gray-500">
+          <span>Ranked: <strong className="text-green-600">{stats.total}</strong></span>
+          <span>Remaining: <strong className="text-blue-600">{stats.remaining}</strong></span>
+          <span>Total: <strong>{stats.total + stats.remaining}</strong></span>
+        </div>
+      </div>
+
+      {/* Control Panel */}
+      <div className="bg-white rounded-lg shadow-md p-6 mb-6">
+        <div className="flex flex-wrap gap-4 items-center justify-between">
+          <div className="flex gap-4 items-center">
+            <select
+              value={selectedGame}
+              onChange={(e) => {
+                setSelectedGame(e.target.value);
+                setCharacters(FIGHTING_GAME_CHARACTERS[e.target.value]);
+                setTierCharacters({});
+              }}
+              className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white"
+            >
+              {Object.keys(FIGHTING_GAME_CHARACTERS).map(game => (
+                <option key={game} value={game}>{game}</option>
+              ))}
+            </select>
+            
+            <button
+              onClick={exportAsJSON}
+              className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors flex items-center gap-2"
+            >
+              <span>📄</span>
+              Export JSON
+            </button>
+            
+            <label className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors cursor-pointer flex items-center gap-2">
+              <span>📁</span>
+              Import JSON
+              <input
+                type="file"
+                accept=".json"
+                onChange={importFromJSON}
+                className="hidden"
+              />
+            </label>
+            
+            <button
+              onClick={exportAsImage}
+              disabled={isExporting}
+              className="px-4 py-2 bg-purple-500 text-white rounded-lg hover:bg-purple-600 transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <span>{isExporting ? '📸' : '🖼️'}</span>
+              {isExporting ? 'Exporting...' : 'Export Image'}
+            </button>
+            
+            <button
+              onClick={resetTierList}
+              className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors flex items-center gap-2"
+            >
+              <span>🔄</span>
+              Reset
+            </button>
+          </div>
+
+          {/* Add New Tier */}
+          <div className="flex gap-2 items-center">
             <input
-              type="file"
-              accept=".json"
-              onChange={importFromJSON}
-              className="hidden"
+              type="text"
+              placeholder="Tier Name"
+              value={tierName}
+              onChange={(e) => setTierName(e.target.value)}
+              className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
             />
-          </label>
+            <input
+              type="text"
+              placeholder="Description (Optional)"
+              value={tierDescription}
+              onChange={(e) => setTierDescription(e.target.value)}
+              className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+            />
+            <button
+              onClick={addTier}
+              className="px-4 py-2 bg-purple-500 text-white rounded-lg hover:bg-purple-600 transition-colors flex items-center gap-2"
+            >
+              <span>➕</span>
+              Add Tier
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <DndContext
+        sensors={sensors}
+        collisionDetection={closestCenter}
+        onDragStart={handleDragStart}
+        onDragEnd={handleDragEnd}
+      >
+        {/* Main Tier List Area - For Image Export */}
+        <div id="tierlist-container" className="space-y-4 mb-8">
+          {tiers.map((tier) => (
+            <div key={tier.id} className="bg-white rounded-lg shadow-md overflow-hidden border">
+              <div className="flex">
+                {/* Tier Header */}
+                <div 
+                  className="w-32 p-4 flex flex-col items-center justify-center text-white"
+                  style={{ backgroundColor: tier.color }}
+                >
+                  <h3 className="text-2xl font-bold mb-2">{tier.name}</h3>
+                  {tier.description && (
+                    <p className="text-sm text-center opacity-90">{tier.description}</p>
+                  )}
+                  <div className="mt-2 flex gap-2">
+                    <button
+                      onClick={() => {
+                        const newName = prompt('New Tier Name:', tier.name);
+                        if (newName && newName !== tier.name) {
+                          updateTier(tier.id, { name: newName });
+                        }
+                      }}
+                      className="text-xs bg-white bg-opacity-20 px-2 py-1 rounded hover:bg-opacity-30"
+                    >
+                      Edit
+                    </button>
+                    <button
+                      onClick={() => removeTier(tier.id)}
+                      className="text-xs bg-white bg-opacity-20 px-2 py-1 rounded hover:bg-opacity-30"
+                    >
+                      Delete
+                    </button>
+                  </div>
+                </div>
+                
+                {/* Tier Content Area */}
+                <DroppableTier tier={tier}>
+                  <SortableContext 
+                    items={tierCharacters[tier.id]?.map(c => c.id) || []}
+                    strategy={horizontalListSortingStrategy}
+                  >
+                    <div className="flex flex-wrap gap-3">
+                      {tierCharacters[tier.id]?.map((character) => (
+                        <SortableItem key={character.id} id={character.id}>
+                          <CharacterCard
+                            character={character}
+                            onRemove={() => removeCharacterFromTier(tier.id, character.id)}
+                          />
+                        </SortableItem>
+                      ))}
+                      {(!tierCharacters[tier.id] || tierCharacters[tier.id].length === 0) && (
+                        <div className="w-full text-center text-gray-400 py-8">
+                          Drop characters here
+                        </div>
+                      )}
+                    </div>
+                  </SortableContext>
+                </DroppableTier>
+              </div>
+            </div>
+          ))}
         </div>
 
-        <DndContext
-          sensors={sensors}
-          collisionDetection={closestCenter}
-          onDragStart={handleDragStart}
-          onDragEnd={handleDragEnd}
-        >
-          <main className="flex-1 space-y-3">
-            {tiers.length === 0 && (
-              <div className="p-6 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-center text-gray-600 dark:text-gray-300">
-                No tiers yet. Right-click to add (暂不提供新增入口，可在外部创建数据)。
-              </div>
-            )}
-
-            <SortableContext items={tiers.map(t => t.id)} strategy={verticalListSortingStrategy}>
-              <div className="space-y-3">
-                {tiers.map((tier) => (
-                  <SortableTier
-                    key={tier.id}
-                    tier={tier}
-                    items={items}
-                    onContextMenu={openContextMenu}
-                    onDrop={handleDragEnd}
-                    onDragOver={(e) => e.preventDefault()}
-                  />
+        {/* Character Pool */}
+        <div className="bg-white rounded-lg shadow-md p-6">
+          <h3 className="text-xl font-bold mb-4">Character Pool (Drag characters above to rank them)</h3>
+          <DroppablePool>
+            <SortableContext 
+              items={characters.map(c => c.id)}
+              strategy={horizontalListSortingStrategy}
+            >
+              <div className="flex flex-wrap gap-3">
+                {characters.map((character) => (
+                  <SortableItem key={character.id} id={character.id}>
+                    <CharacterCard
+                      character={character}
+                      onRemove={() => {}}
+                    />
+                  </SortableItem>
                 ))}
               </div>
             </SortableContext>
-          </main>
-
-          <aside className="mt-10">
-            <div className="min-h-[96px] border-2 border-dashed border-gray-200 dark:border-gray-700 rounded-md p-3 flex flex-wrap gap-3 overflow-auto bg-white/50 dark:bg-gray-700/60">
-              <SortableContext items={unassignedItems.map(item => item.id)} strategy={horizontalListSortingStrategy}>
-                {unassignedItems.map((it) => (
-                  <SortableItem
-                    key={it.id}
-                    item={it}
-                    onContextMenu={openContextMenu}
-                  />
-                ))}
-              </SortableContext>
-              <div className="w-20 flex-shrink-0 flex flex-col items-center gap-1 select-none">
-                <button
-                  type="button"
-                  title="Add item"
-                  onClick={() => {
-                    const id = generateId("i");
-                    const newItem = { id, name: "New Item", img: "https://placehold.jp/150x150.png" };
-                    setItems((s) => [newItem, ...s]);
-                    setModal({
-                      open: true,
-                      type: "item",
-                      id,
-                      form: { name: newItem.name, img: newItem.img, color: "#9ca3af" }
-                    });
-                  }}
-                  className="w-20 h-20 cursor-pointer rounded-md border-2 border-dashed border-gray-300 dark:border-gray-700 flex items-center justify-center text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700/50"
-                >
-                  <svg width="28" height="28" viewBox="0 0 24 24" fill="none" aria-hidden focusable="false">
-                    <path d="M12 5v14" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                    <path d="M5 12h14" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                  </svg>
-                </button>
+            {characters.length === 0 && (
+              <div className="text-center text-gray-500 py-8">
+                <p>All characters have been ranked!</p>
               </div>
+            )}
+          </DroppablePool>
+        </div>
+
+        <DragOverlay>
+          {activeId ? (
+            <div className="bg-white rounded-lg shadow-lg p-2 opacity-80 transform rotate-3">
+              {(() => {
+                const character = characters.find(c => c.id === activeId) ||
+                  Object.values(tierCharacters).flat().find(c => c.id === activeId);
+                return character ? (
+                  <CharacterCard character={character} onRemove={() => {}} />
+                ) : null;
+              })()}
             </div>
-          </aside>
+          ) : null}
+        </DragOverlay>
+      </DndContext>
 
-          <DragOverlay>
-            {activeItem ? (
-              <div className="relative w-20 flex-shrink-0 flex flex-col items-center gap-1 select-none cursor-grabbing">
-                <img
-                  className="w-20 h-20 rounded-md object-cover shadow-lg transition-opacity duration-200"
-                  src={activeItem.img}
-                  alt={activeItem.name}
-                />
-                <div className="absolute bottom-0 text-xs text-center w-full rounded-b-md truncate text-gray-100 py-1 bg-black/40">
-                  {activeItem.name}
-                </div>
-              </div>
-            ) : null}
-          </DragOverlay>
-        </DndContext>
+      {/* Instructions */}
+      <div className="mt-8 bg-blue-50 rounded-lg p-6">
+        <h3 className="text-lg font-bold text-blue-800 mb-3">How to Use</h3>
+        <ul className="text-blue-700 space-y-2">
+          <li>• Drag characters from the pool to different tiers to rank them</li>
+          <li>• Move characters between tiers by dragging</li>
+          <li>• Click the × button on character cards to move them back to the pool</li>
+          <li>• Use "Add Tier" button to create new ranking tiers</li>
+          <li>• Import/Export functions for sharing and saving</li>
+          <li>• Reset button to clear all rankings and start over</li>
+          <li>• Export Image function generates high-quality shareable images</li>
+        </ul>
       </div>
-
-      {menu.open && (
-        <div
-          className="fixed z-50 w-40 rounded-md border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-lg py-1 text-sm"
-          style={{ left: menu.x, top: menu.y }}
-          onClick={(e) => e.stopPropagation()}
-        >
-          <button
-            className="w-full text-left px-3 py-2 hover:bg-gray-100 dark:hover:bg-gray-700"
-            onClick={onMenuEdit}
-          >
-            Edit
-          </button>
-          <button
-            className="w-full text-left px-3 py-2 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/30"
-            onClick={onMenuDelete}
-          >
-            Delete
-          </button>
-        </div>
-      )}
-
-      {modal.open && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center">
-          <div className="absolute inset-0 bg-black/40" />
-          <div
-            className="relative z-10 w-full max-w-md rounded-lg bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 p-4 shadow-xl"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="text-base font-semibold mb-3">
-              {modal.type === "tier" ? "Edit Tier" : "Edit Item"}
-            </div>
-            <div className="space-y-3">
-              <label className="block">
-                <span className="text-sm text-gray-600 dark:text-gray-300">Name</span>
-                <input
-                  className="mt-1 w-full rounded-md border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 outline-none"
-                  value={modal.form.name}
-                  onChange={(e) =>
-                    setModal((m) => ({ ...m, form: { ...m.form, name: e.target.value } }))
-                  }
-                  onKeyDown={(e) => e.key === "Enter" && submitModal()}
-                  autoFocus
-                />
-              </label>
-              {modal.type === "tier" ? (
-                <label className="block">
-                  <span className="text-sm text-gray-600 dark:text-gray-300">Color</span>
-                  <div className="mt-1 flex items-center gap-2">
-                    <input
-                      type="color"
-                      className="h-9 w-12 rounded border-0"
-                      value={modal.form.color}
-                      onChange={(e) =>
-                        setModal((m) => ({ ...m, form: { ...m.form, color: e.target.value } }))
-                      }
-                    />
-                    <input
-                      className="flex-1 rounded-md border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2"
-                      value={modal.form.color}
-                      onChange={(e) =>
-                        setModal((m) => ({ ...m, form: { ...m.form, color: e.target.value } }))
-                      }
-                    />
-                  </div>
-                </label>
-              ) : (
-                <>
-                  <label className="block">
-                    <span className="text-sm text-gray-600 dark:text-gray-300">Image URL</span>
-                    <input
-                      className="mt-1 w-full rounded-md border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2"
-                      value={modal.form.img}
-                      onChange={(e) =>
-                        setModal((m) => ({ ...m, form: { ...m.form, img: e.target.value } }))
-                      }
-                      onKeyDown={(e) => e.key === "Enter" && submitModal()}
-                      placeholder="https://..."
-                    />
-                  </label>
-                  <div className="block">
-                    <span className="text-sm text-gray-600 dark:text-gray-300">Or upload image:</span>
-                    <input
-                      type="file"
-                      accept="image/*"
-                      onChange={async (e) => {
-                        const file = e.target.files[0];
-                        if (file) {
-                          try {
-                            const base64 = await handleImageUpload(file);
-                            setModal((m) => ({ ...m, form: { ...m.form, img: base64 } }));
-                          } catch (error) {
-                            alert('Failed to upload image');
-                          }
-                        }
-                      }}
-                      className="mt-1 w-full rounded-md border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2"
-                    />
-                  </div>
-                </>
-              )}
-            </div>
-            <div className="mt-4 flex justify-end gap-2">
-              <button
-                className="px-3 py-1.5 rounded-md bg-gray-100 dark:bg-gray-700 hover:brightness-95"
-                onClick={closeModal}
-              >
-                Cancel
-              </button>
-              <button
-                className="px-3 py-1.5 rounded-md bg-indigo-600 text-white hover:bg-indigo-500"
-                onClick={submitModal}
-              >
-                Save
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

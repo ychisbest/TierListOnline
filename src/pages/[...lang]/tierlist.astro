@@ -1,0 +1,37 @@
+---
+import { DEFAULT_LOCALE_SETTING, LOCALES_SETTING } from "@/locales";
+import { useTranslations, type Lang } from "@/i18n";
+import Layout from "@/layouts/BaseLayout.astro";
+import TierListEditor from "@/components/TierListEditor";
+
+const t = useTranslations(Astro.currentLocale as Lang);
+export const getStaticPaths = async () => {
+    const paths = Object.keys(LOCALES_SETTING).map((lang) => {
+        if (lang !== DEFAULT_LOCALE_SETTING) {
+            return {
+                params: { lang: lang },
+            };
+        } else {
+            return { params: { lang: undefined } };
+        }
+    });
+    return paths;
+};
+
+const title = {
+    en: "Fighting Game Tier List Maker | Create Character Rankings - TierList.Online",
+    it: "Fighting Game Tier List Maker | Create Character Rankings - TierList.Online",
+    de: "Fighting Game Tier List Maker | Create Character Rankings - TierList.Online",
+};
+const description = {
+    en: "Create professional fighting game tier lists online for free. Rank Street Fighter, Tekken, Guilty Gear characters with drag-and-drop interface. No signup required.",
+    it: "Create professional fighting game tier lists online for free. Rank Street Fighter, Tekken, Guilty Gear characters with drag-and-drop interface. No signup required.",
+    de: "Create professional fighting game tier lists online for free. Rank Street Fighter, Tekken, Guilty Gear characters with drag-and-drop interface. No signup required.",
+};
+---
+
+<Layout title={title} description={description}>
+    <div class="min-h-screen bg-gray-50">
+        <TierListEditor client:load />
+    </div>
+</Layout>
